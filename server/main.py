@@ -14,13 +14,20 @@ DB_USER = os.getenv("DB_USER", "root")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_NAME = os.getenv("DB_NAME", "custech_registration")
+DB_PORT = os.getenv("DB_PORT", "3306")
 
-DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
-engine = create_engine(DATABASE_URL)
+# --- 2. DATABASE CONNECTION (Cloud Ready) ---
+DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+engine = create_engine(
+    DATABASE_URL, 
+    pool_pre_ping=True, 
+    connect_args={"ssl": {}} 
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# --- 2. MODELS ---
+# --- 3. MODELS ---
 class StudentModel(Base):
     __tablename__ = "students"
     id = Column(Integer, primary_key=True, index=True)
@@ -30,7 +37,7 @@ class StudentModel(Base):
     department = Column(String(50))
     level = Column(Integer)
     has_registered = Column(Boolean, default=False)
-    admin_message = Column(String(500), nullable=True) # NEW COLUMN
+    admin_message = Column(String(500), nullable=True) 
     registrations = relationship("RegistrationModel", back_populates="student", cascade="all, delete")
 
 class CourseModel(Base):
@@ -58,7 +65,7 @@ class AdminModel(Base):
     username = Column(String(50), unique=True)
     password_hash = Column(String(255))
 
-# --- 3. SCHEMAS ---
+# --- 4. SCHEMAS ---
 class StudentSignUp(BaseModel):
     full_name: str
     matric_number: str
@@ -80,9 +87,17 @@ class MessageRequest(BaseModel):
     student_id: int
     message: str
 
-# --- 4. APP SETUP ---
+# --- 5. APP SETUP & CORS ---
 app = FastAPI(title="CUSTECH Course Registration API")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 def get_db():
@@ -101,7 +116,7 @@ def parse_matric(matric: str):
     if dept_code not in depts: raise ValueError("Invalid department code")
     return depts[dept_code], levels[year]
 
-# --- 5. ENDPOINTS ---
+# --- 6. ENDPOINTS ---
 
 @app.post("/api/auth/signup")
 def signup(student: StudentSignUp, db: Session = Depends(get_db)):
@@ -129,7 +144,7 @@ def login(student: StudentLogin, db: Session = Depends(get_db)):
         "message": "Login successful",
         "user": {"id": db_student.id, "name": db_student.full_name, "matric": db_student.matric_number,
                  "department": db_student.department, "level": db_student.level, "has_registered": db_student.has_registered,
-                 "admin_message": db_student.admin_message} # INCLUDE MESSAGE
+                 "admin_message": db_student.admin_message} 
     }
 
 @app.post("/api/auth/admin-login")
@@ -200,7 +215,6 @@ def admin_delete_registration(student_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Registration deleted"}
 
-# --- NEW MESSAGE ENDPOINTS ---
 @app.post("/api/admin/send-message")
 def send_message(req: MessageRequest, db: Session = Depends(get_db)):
     student = db.query(StudentModel).filter(StudentModel.id == req.student_id).first()

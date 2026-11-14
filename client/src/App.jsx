@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
 
 function App() {
+  // This handles both Vercel production and local development
+  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
   const [view, setView] = useState('login'); 
   const [user, setUser] = useState(null); 
   const [formData, setFormData] = useState({ full_name: '', matric_number: '', password: '' });
@@ -21,7 +24,7 @@ function App() {
   // Admin States
   const [adminStudents, setAdminStudents] = useState([]);
   const [selectedStudentForView, setSelectedStudentForView] = useState(null); 
-  const [selectedStudentForMsg, setSelectedStudentForMsg] = useState(null); // For sending message
+  const [selectedStudentForMsg, setSelectedStudentForMsg] = useState(null);
   const [adminMessageText, setAdminMessageText] = useState('');
 
   // Admin Filters
@@ -61,7 +64,7 @@ function App() {
     if (user && user.role !== 'admin') {
       setLoading(true);
       if (user.has_registered) {
-        fetch(`http://127.0.0.1:8000/api/register/${user.id}`)
+        fetch(`${API_URL}/api/register/${user.id}`)
           .then(res => res.json())
           .then(data => { 
             setFirstSemRegistered(data.filter(c => c.semester === 'First'));
@@ -71,8 +74,8 @@ function App() {
       } else {
         const encodedDept = encodeURIComponent(user.department);
         Promise.all([
-          fetch(`http://127.0.0.1:8000/api/courses?department=${encodedDept}&level=${user.level}&semester=First`).then(res => res.json()),
-          fetch(`http://127.0.0.1:8000/api/courses?department=${encodedDept}&level=${user.level}&semester=Second`).then(res => res.json())
+          fetch(`${API_URL}/api/courses?department=${encodedDept}&level=${user.level}&semester=First`).then(res => res.json()),
+          fetch(`${API_URL}/api/courses?department=${encodedDept}&level=${user.level}&semester=Second`).then(res => res.json())
         ]).then(([firstData, secondData]) => {
           setFirstSemCourses(firstData);
           setSecondSemCourses(secondData);
@@ -89,7 +92,7 @@ function App() {
 
   const fetchAdminData = () => {
     setLoading(true);
-    fetch('http://127.0.0.1:8000/api/admin/registrations')
+    fetch(`${API_URL}/api/admin/registrations`)
       .then(res => res.json())
       .then(data => { setAdminStudents(data); setLoading(false); });
   };
@@ -104,7 +107,7 @@ function App() {
     const payload = view === 'login' ? { matric_number: formData.matric_number, password: formData.password } : formData;
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       });
       const data = await response.json();
@@ -125,7 +128,7 @@ function App() {
     e.preventDefault();
     setMessage({ text: 'Processing...', type: 'info' });
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/auth/admin-login`, {
+      const response = await fetch(`${API_URL}/api/auth/admin-login`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(adminData)
       });
       const data = await response.json();
@@ -170,7 +173,7 @@ function App() {
     setMessage({ text: 'Submitting registration...', type: 'info' });
     
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/register', {
+      const response = await fetch(`${API_URL}/api/register`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ student_id: user.id, course_codes: allSelected.map(c => c.course_code) })
       });
@@ -190,7 +193,7 @@ function App() {
     e.preventDefault();
     if (!searchQueryFirst) return;
     const encodedDept = encodeURIComponent(user.department);
-    const res = await fetch(`http://127.0.0.1:8000/api/courses/search?department=${encodedDept}&query=${searchQueryFirst}&semester=First`);
+    const res = await fetch(`${API_URL}/api/courses/search?department=${encodedDept}&query=${searchQueryFirst}&semester=First`);
     const data = await res.json();
     setSearchResultsFirst(data);
   };
@@ -199,20 +202,20 @@ function App() {
     e.preventDefault();
     if (!searchQuerySecond) return;
     const encodedDept = encodeURIComponent(user.department);
-    const res = await fetch(`http://127.0.0.1:8000/api/courses/search?department=${encodedDept}&query=${searchQuerySecond}&semester=Second`);
+    const res = await fetch(`${API_URL}/api/courses/search?department=${encodedDept}&query=${searchQuerySecond}&semester=Second`);
     const data = await res.json();
     setSearchResultsSecond(data);
   };
 
   const handleDeleteRegistration = async (studentId) => {
     if (!window.confirm("Are you sure you want to delete this student's registration?")) return;
-    await fetch(`http://127.0.0.1:8000/api/admin/registrations/${studentId}`, { method: 'DELETE' });
+    await fetch(`${API_URL}/api/admin/registrations/${studentId}`, { method: 'DELETE' });
     fetchAdminData();
   };
 
   const handleSendAdminMessage = async (e) => {
     e.preventDefault();
-    await fetch('http://127.0.0.1:8000/api/admin/send-message', {
+    await fetch(`${API_URL}/api/admin/send-message`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ student_id: selectedStudentForMsg.id, message: adminMessageText })
     });
@@ -222,7 +225,7 @@ function App() {
   };
 
   const handleClearMessage = async () => {
-    await fetch(`http://127.0.0.1:8000/api/student/clear-message/${user.id}`, { method: 'POST' });
+    await fetch(`${API_URL}/api/student/clear-message/${user.id}`, { method: 'POST' });
     const updatedUser = { ...user, admin_message: null };
     localStorage.setItem('custech_user', JSON.stringify(updatedUser));
     setUser(updatedUser);
@@ -298,7 +301,6 @@ function App() {
         )}
 
         <div className="max-w-6xl mx-auto mt-8 px-4 print:hidden">
-          {/* ... Student Dashboard Content (Same as before) ... */}
           <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-[#007FFF] mb-8">
             <h2 className="text-3xl font-extrabold text-gray-800">Welcome, {user.name}</h2>
             <div className="flex gap-6 mt-2 text-gray-600 font-medium">
@@ -371,10 +373,9 @@ function App() {
           )}
         </div>
 
-        {/* HIDDEN PRINT COMPONENTS (Same as previous code) */}
+        {/* HIDDEN PRINT COMPONENTS FOR STUDENT */}
         <div className="hidden">
           <div ref={studentCourseFormRef} className="p-10 bg-white text-black font-serif" style={{ width: '210mm', minHeight: '297mm' }}>
-            {/* ... Course Form JSX ... */}
             <div className="text-center mb-8 border-b-2 border-gray-800 pb-4 relative"><img src="/logo.jpg" alt="Logo" className="w-24 mx-auto mb-4" /><h1 className="text-2xl font-bold uppercase">Confluence University of Science and Technology (CUSTECH)</h1><h2 className="text-xl mt-2 font-semibold">Osara, Kogi State</h2><h3 className="text-lg font-bold mt-4 uppercase">Course Registration Form - 2026/2027 Session</h3></div>
             <div className="grid grid-cols-2 gap-4 mb-8 text-lg"><p><strong>Name:</strong> {user.name}</p><p><strong>Matric No:</strong> {user.matric}</p><p><strong>Department:</strong> {user.department}</p><p><strong>Level:</strong> {user.level}L</p></div>
             <h4 className="text-xl font-bold mb-2">First Semester</h4>
@@ -387,7 +388,6 @@ function App() {
         </div>
         <div className="hidden">
           <div ref={studentReceiptRef} className="p-8 bg-white text-black font-sans" style={{ width: '148mm', height: '105mm' }}>
-            {/* ... Receipt JSX ... */}
             <div className="border-4 border-[#7B3F00] rounded-xl p-6 h-full flex flex-col relative overflow-hidden"><img src="/logo.jpg" alt="Watermark" className="absolute inset-0 m-auto w-48 opacity-10 pointer-events-none" /><div className="flex justify-between items-center border-b-2 border-dashed border-gray-300 pb-4 mb-4 relative z-10"><div className="flex items-center gap-4"><img src="/logo.jpg" alt="Logo" className="w-12 rounded-full" /><div><h1 className="text-xl font-extrabold text-[#7B3F00]">CUSTECH</h1><p className="text-xs text-gray-500 uppercase tracking-widest">Proof of Registration</p></div></div><div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold border border-green-500 flex items-center gap-1"><svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>VERIFIED</div></div><div className="grid grid-cols-2 gap-y-3 text-sm relative z-10"><div><span className="text-gray-500 text-xs uppercase block">Student Name</span><strong>{user.name}</strong></div><div><span className="text-gray-500 text-xs uppercase block">Matric Number</span><strong className="uppercase">{user.matric}</strong></div><div><span className="text-gray-500 text-xs uppercase block">Department</span><strong>{user.department}</strong></div><div><span className="text-gray-500 text-xs uppercase block">Level</span><strong>{user.level} Level</strong></div></div><div className="mt-auto pt-4 border-t border-gray-200 relative z-10"><div className="flex justify-between items-end"><div><span className="text-gray-500 text-xs uppercase block">Total Units Registered</span><div className="flex gap-4 mt-1"><p className="text-sm font-semibold">1st Sem: <span className="text-[#007FFF] text-lg font-bold">{totalFirstSemUnits}</span></p><p className="text-sm font-semibold">2nd Sem: <span className="text-[#007FFF] text-lg font-bold">{totalSecondSemUnits}</span></p><p className="text-sm font-semibold ml-4">Grand Total: <span className="text-[#7B3F00] text-2xl font-extrabold">{totalFirstSemUnits + totalSecondSemUnits}</span></p></div></div><div className="text-right"><p className="text-xs text-gray-400">Date: {new Date().toLocaleDateString()}</p><p className="text-[10px] text-gray-400 mt-1">Keep this receipt safe.</p></div></div></div></div>
           </div>
         </div>
@@ -399,7 +399,6 @@ function App() {
   // RENDER: ADMIN DASHBOARD
   // ==========================================
   if (user && user.role === 'admin') {
-    // Filter Logic
     const filteredStudents = adminStudents.filter(student => {
       const matchDept = filterDept === 'All' || student.department === filterDept;
       const matchLevel = filterLevel === 'All' || student.level === parseInt(filterLevel);
@@ -418,7 +417,6 @@ function App() {
             <div><h2 className="text-3xl font-extrabold text-gray-800">Welcome, {user.name}</h2><p className="text-gray-600 mt-2">Total Registered Students: <span className="font-bold text-[#007FFF]">{adminStudents.length}</span></p></div>
           </div>
 
-          {/* FILTERS */}
           <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex gap-4 items-center">
             <span className="font-bold text-gray-700">Filter By:</span>
             <select className="border p-2 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-400 outline-none" value={filterDept} onChange={(e) => setFilterDept(e.target.value)}>
@@ -485,7 +483,7 @@ function App() {
           </div>
         )}
 
-        {/* ADMIN VIEW & PRINT MODAL (Same as previous code) */}
+        {/* ADMIN VIEW & PRINT MODAL */}
         {selectedStudentForView && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 print:hidden">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -507,12 +505,11 @@ function App() {
           </div>
         )}
 
-        {/* HIDDEN PRINT COMPONENTS FOR ADMIN (Same as previous code) */}
+        {/* HIDDEN PRINT COMPONENTS FOR ADMIN */}
         {selectedStudentForView && (
           <>
             <div className="hidden">
               <div ref={adminCourseFormRef} className="p-10 bg-white text-black font-serif" style={{ width: '210mm', minHeight: '297mm' }}>
-                 {/* ... Admin Course Form JSX ... */}
                  <div className="text-center mb-8 border-b-2 border-gray-800 pb-4 relative"><img src="/logo.jpg" alt="Logo" className="w-24 mx-auto mb-4" /><h1 className="text-2xl font-bold uppercase">Confluence University of Science and Technology (CUSTECH)</h1><h2 className="text-xl mt-2 font-semibold">Osara, Kogi State</h2><h3 className="text-lg font-bold mt-4 uppercase">Course Registration Form - 2026/2027 Session</h3></div>
                  <div className="grid grid-cols-2 gap-4 mb-8 text-lg"><p><strong>Name:</strong> {selectedStudentForView.name}</p><p><strong>Matric No:</strong> {selectedStudentForView.matric}</p><p><strong>Department:</strong> {selectedStudentForView.department}</p><p><strong>Level:</strong> {selectedStudentForView.level}L</p></div>
                  <h4 className="text-xl font-bold mb-2">First Semester</h4><table className="w-full border-collapse border border-gray-800 mb-6 text-sm"><thead><tr className="bg-gray-200"><th className="border border-gray-800 p-2">S/N</th><th className="border border-gray-800 p-2">Course Code</th><th className="border border-gray-800 p-2 text-left">Course Title</th><th className="border border-gray-800 p-2">Units</th></tr></thead><tbody>{selectedStudentForView.courses.filter(c => c.semester === 'First').map((c, i) => (<tr key={c.course_code}><td className="border border-gray-800 p-2 text-center">{i + 1}</td><td className="border border-gray-800 p-2 text-center">{c.course_code}</td><td className="border border-gray-800 p-2">{c.course_title}</td><td className="border border-gray-800 p-2 text-center">{c.units}</td></tr>))}<tr className="bg-gray-100 font-bold"><td colSpan="3" className="border border-gray-800 p-2 text-right">Total First Semester Units:</td><td className="border border-gray-800 p-2 text-center">{selectedStudentForView.courses.filter(c => c.semester === 'First').reduce((sum, c) => sum + c.units, 0)}</td></tr></tbody></table>
@@ -523,7 +520,6 @@ function App() {
             </div>
             <div className="hidden">
               <div ref={adminReceiptRef} className="p-8 bg-white text-black font-sans" style={{ width: '148mm', height: '105mm' }}>
-                 {/* ... Admin Receipt JSX ... */}
                  <div className="border-4 border-[#7B3F00] rounded-xl p-6 h-full flex flex-col relative overflow-hidden"><img src="/logo.jpg" alt="Watermark" className="absolute inset-0 m-auto w-48 opacity-10 pointer-events-none" /><div className="flex justify-between items-center border-b-2 border-dashed border-gray-300 pb-4 mb-4 relative z-10"><div className="flex items-center gap-4"><img src="/logo.jpg" alt="Logo" className="w-12 rounded-full" /><div><h1 className="text-xl font-extrabold text-[#7B3F00]">CUSTECH</h1><p className="text-xs text-gray-500 uppercase tracking-widest">Proof of Registration</p></div></div><div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold border border-green-500 flex items-center gap-1"><svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>VERIFIED</div></div><div className="grid grid-cols-2 gap-y-3 text-sm relative z-10"><div><span className="text-gray-500 text-xs uppercase block">Student Name</span><strong>{selectedStudentForView.name}</strong></div><div><span className="text-gray-500 text-xs uppercase block">Matric Number</span><strong className="uppercase">{selectedStudentForView.matric}</strong></div><div><span className="text-gray-500 text-xs uppercase block">Department</span><strong>{selectedStudentForView.department}</strong></div><div><span className="text-gray-500 text-xs uppercase block">Level</span><strong>{selectedStudentForView.level} Level</strong></div></div><div className="mt-auto pt-4 border-t border-gray-200 relative z-10"><div className="flex justify-between items-end"><div><span className="text-gray-500 text-xs uppercase block">Total Units Registered</span><div className="flex gap-4 mt-1"><p className="text-sm font-semibold">1st Sem: <span className="text-[#007FFF] text-lg font-bold">{selectedStudentForView.courses.filter(c => c.semester === 'First').reduce((sum, c) => sum + c.units, 0)}</span></p><p className="text-sm font-semibold">2nd Sem: <span className="text-[#007FFF] text-lg font-bold">{selectedStudentForView.courses.filter(c => c.semester === 'Second').reduce((sum, c) => sum + c.units, 0)}</span></p><p className="text-sm font-semibold ml-4">Grand Total: <span className="text-[#7B3F00] text-2xl font-extrabold">{selectedStudentForView.courses.reduce((sum, c) => sum + c.units, 0)}</span></p></div></div><div className="text-right"><p className="text-xs text-gray-400">Date: {new Date().toLocaleDateString()}</p><p className="text-[10px] text-gray-400 mt-1">Keep this receipt safe.</p></div></div></div></div>
               </div>
             </div>
