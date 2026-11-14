@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
 
 function App() {
-  // This handles both Vercel production and local development
   const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
   const [view, setView] = useState('login'); 
@@ -11,7 +10,6 @@ function App() {
   const [adminData, setAdminData] = useState({ username: '', password: '' });
   const [message, setMessage] = useState({ text: '', type: '' });
 
-  // --- SEMESTER SPECIFIC STATES ---
   const [firstSemCourses, setFirstSemCourses] = useState([]);
   const [secondSemCourses, setSecondSemCourses] = useState([]);
   const [firstSemSelected, setFirstSemSelected] = useState([]);
@@ -21,26 +19,21 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [isCongratulatory, setIsCongratulatory] = useState(false);
 
-  // Admin States
   const [adminStudents, setAdminStudents] = useState([]);
   const [selectedStudentForView, setSelectedStudentForView] = useState(null); 
   const [selectedStudentForMsg, setSelectedStudentForMsg] = useState(null);
   const [adminMessageText, setAdminMessageText] = useState('');
 
-  // Admin Filters
   const [filterDept, setFilterDept] = useState('All');
   const [filterLevel, setFilterLevel] = useState('All');
 
-  // Student Popup Message State
   const [showMessagePopup, setShowMessagePopup] = useState(false);
 
-  // Search States
   const [searchQueryFirst, setSearchQueryFirst] = useState('');
   const [searchResultsFirst, setSearchResultsFirst] = useState([]);
   const [searchQuerySecond, setSearchQuerySecond] = useState('');
   const [searchResultsSecond, setSearchResultsSecond] = useState([]);
 
-  // Print Refs
   const studentCourseFormRef = useRef();
   const studentReceiptRef = useRef();
   const adminCourseFormRef = useRef();
@@ -147,15 +140,8 @@ function App() {
   const allFirstSelected = firstSemCourses.length > 0 && firstSemSelected.length === firstSemCourses.length;
   const allSecondSelected = secondSemCourses.length > 0 && secondSemSelected.length === secondSemCourses.length;
 
-  const toggleAllFirstSem = () => {
-    if (allFirstSelected) setFirstSemSelected([]);
-    else setFirstSemSelected([...firstSemCourses]);
-  };
-
-  const toggleAllSecondSem = () => {
-    if (allSecondSelected) setSecondSemSelected([]);
-    else setSecondSemSelected([...secondSemCourses]);
-  };
+  const toggleAllFirstSem = () => { if (allFirstSelected) setFirstSemSelected([]); else setFirstSemSelected([...firstSemCourses]); };
+  const toggleAllSecondSem = () => { if (allSecondSelected) setSecondSemSelected([]); else setSecondSemSelected([...secondSemCourses]); };
 
   const toggleFirstSemCourse = (course) => {
     if (firstSemSelected.find(c => c.course_code === course.course_code)) setFirstSemSelected(firstSemSelected.filter(c => c.course_code !== course.course_code));
@@ -190,21 +176,17 @@ function App() {
   };
 
   const handleSearchFirst = async (e) => {
-    e.preventDefault();
-    if (!searchQueryFirst) return;
+    e.preventDefault(); if (!searchQueryFirst) return;
     const encodedDept = encodeURIComponent(user.department);
     const res = await fetch(`${API_URL}/api/courses/search?department=${encodedDept}&query=${searchQueryFirst}&semester=First`);
-    const data = await res.json();
-    setSearchResultsFirst(data);
+    const data = await res.json(); setSearchResultsFirst(data);
   };
 
   const handleSearchSecond = async (e) => {
-    e.preventDefault();
-    if (!searchQuerySecond) return;
+    e.preventDefault(); if (!searchQuerySecond) return;
     const encodedDept = encodeURIComponent(user.department);
     const res = await fetch(`${API_URL}/api/courses/search?department=${encodedDept}&query=${searchQuerySecond}&semester=Second`);
-    const data = await res.json();
-    setSearchResultsSecond(data);
+    const data = await res.json(); setSearchResultsSecond(data);
   };
 
   const handleDeleteRegistration = async (studentId) => {
@@ -219,8 +201,7 @@ function App() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ student_id: selectedStudentForMsg.id, message: adminMessageText })
     });
-    setSelectedStudentForMsg(null);
-    setAdminMessageText('');
+    setSelectedStudentForMsg(null); setAdminMessageText('');
     alert("Message sent successfully!");
   };
 
@@ -228,33 +209,34 @@ function App() {
     await fetch(`${API_URL}/api/student/clear-message/${user.id}`, { method: 'POST' });
     const updatedUser = { ...user, admin_message: null };
     localStorage.setItem('custech_user', JSON.stringify(updatedUser));
-    setUser(updatedUser);
-    setShowMessagePopup(false);
+    setUser(updatedUser); setShowMessagePopup(false);
   };
 
   const renderCourseTable = (courses, selectedList, toggleFunc, allSelected, toggleAll) => (
-    <table className="w-full text-left border-collapse">
-      <thead>
-        <tr className="bg-gray-100 text-gray-600 text-sm uppercase">
-          <th className="p-4 border-b flex items-center gap-2">
-            <input type="checkbox" className="w-5 h-5 accent-[#007FFF] cursor-pointer" checked={allSelected} onChange={toggleAll} />
-            <span>All</span>
-          </th>
-          <th className="p-4 border-b">Code</th><th className="p-4 border-b">Course Title</th><th className="p-4 border-b">Units</th><th className="p-4 border-b">Lecturer</th>
-        </tr>
-      </thead>
-      <tbody>
-        {courses.map(course => (
-          <tr key={course.id || course.course_code} className="hover:bg-blue-50 transition">
-            <td className="p-4 border-b">
-              <input type="checkbox" className="w-5 h-5 accent-[#007FFF]" checked={selectedList.some(c => c.course_code === course.course_code)} onChange={() => toggleFunc(course)} />
-            </td>
-            <td className="p-4 border-b font-semibold">{course.course_code}</td><td className="p-4 border-b">{course.course_title}</td>
-            <td className="p-4 border-b">{course.units}</td><td className="p-4 border-b text-sm text-gray-500">{course.lecturer}</td>
+    <div className="overflow-x-auto">
+      <table className="w-full text-left border-collapse min-w-[600px]">
+        <thead>
+          <tr className="bg-gray-100 text-gray-600 text-sm uppercase">
+            <th className="p-4 border-b flex items-center gap-2">
+              <input type="checkbox" className="w-5 h-5 accent-[#007FFF] cursor-pointer" checked={allSelected} onChange={toggleAll} />
+              <span>All</span>
+            </th>
+            <th className="p-4 border-b">Code</th><th className="p-4 border-b">Course Title</th><th className="p-4 border-b">Units</th><th className="p-4 border-b">Lecturer</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {courses.map(course => (
+            <tr key={course.id || course.course_code} className="hover:bg-blue-50 transition">
+              <td className="p-4 border-b">
+                <input type="checkbox" className="w-5 h-5 accent-[#007FFF]" checked={selectedList.some(c => c.course_code === course.course_code)} onChange={() => toggleFunc(course)} />
+              </td>
+              <td className="p-4 border-b font-semibold">{course.course_code}</td><td className="p-4 border-b">{course.course_title}</td>
+              <td className="p-4 border-b">{course.units}</td><td className="p-4 border-b text-sm text-gray-500">{course.lecturer}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 
   const totalFirstSemUnits = firstSemRegistered.reduce((sum, c) => sum + c.units, 0);
@@ -278,21 +260,18 @@ function App() {
 
     return (
       <div className="min-h-screen bg-gray-100 pb-10">
-        <nav className="bg-[#7B3F00] text-white p-4 shadow-md flex justify-between items-center px-8 print:hidden">
-          <div className="flex items-center gap-3"><img src="/logo.jpg" alt="Logo" className="w-10 rounded-full" /><h1 className="text-xl font-bold">CUSTECH Portal</h1></div>
+        <nav className="bg-[#7B3F00] text-white p-4 shadow-md flex justify-between items-center px-4 md:px-8 print:hidden">
+          <div className="flex items-center gap-3"><img src="/logo.jpg" alt="Logo" className="w-10 rounded-full" /><h1 className="text-lg md:text-xl font-bold">CUSTECH Portal</h1></div>
           <button onClick={handleLogout} className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm font-semibold transition">Logout</button>
         </nav>
 
-        {/* STUDENT MESSAGE POPUP */}
         {showMessagePopup && user.admin_message && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border-t-8 border-red-500">
               <div className="bg-red-50 p-6 text-center border-b">
                 <h2 className="text-2xl font-extrabold text-red-600">IMPORTANT MESSAGE FROM THE ADMIN</h2>
               </div>
-              <div className="p-8">
-                <p className="text-gray-700 text-lg leading-relaxed">{user.admin_message}</p>
-              </div>
+              <div className="p-8"><p className="text-gray-700 text-lg leading-relaxed">{user.admin_message}</p></div>
               <div className="p-6 bg-gray-50 flex justify-end">
                 <button onClick={handleClearMessage} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-8 rounded-lg shadow-md transition">I Understand & Acknowledge</button>
               </div>
@@ -302,8 +281,8 @@ function App() {
 
         <div className="max-w-6xl mx-auto mt-8 px-4 print:hidden">
           <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-[#007FFF] mb-8">
-            <h2 className="text-3xl font-extrabold text-gray-800">Welcome, {user.name}</h2>
-            <div className="flex gap-6 mt-2 text-gray-600 font-medium">
+            <h2 className="text-2xl md:text-3xl font-extrabold text-gray-800">Welcome, {user.name}</h2>
+            <div className="flex flex-wrap gap-x-6 gap-y-2 mt-2 text-gray-600 font-medium text-sm md:text-base">
               <p>Matric: <span className="text-black uppercase">{user.matric}</span></p>
               <p>Dept: <span className="text-black">{user.department}</span></p>
               <p>Level: <span className="text-black">{user.level}L</span></p>
@@ -312,30 +291,34 @@ function App() {
 
           {user.has_registered ? (
              <>
-              <div className="flex gap-4 mb-8">
-                <button onClick={handlePrintStudentCourseForm} className="bg-[#007FFF] text-white py-3 px-6 rounded-lg font-bold shadow-md hover:bg-blue-700 transition flex items-center gap-2">
+              <div className="flex flex-col md:flex-row gap-4 mb-8">
+                <button onClick={handlePrintStudentCourseForm} className="bg-[#007FFF] text-white py-3 px-6 rounded-lg font-bold shadow-md hover:bg-blue-700 transition flex items-center justify-center gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                   Print Course Form
                 </button>
-                <button onClick={handlePrintStudentReceipt} className="bg-[#008000] text-white py-3 px-6 rounded-lg font-bold shadow-md hover:bg-green-700 transition flex items-center gap-2">
+                <button onClick={handlePrintStudentReceipt} className="bg-[#008000] text-white py-3 px-6 rounded-lg font-bold shadow-md hover:bg-green-700 transition flex items-center justify-center gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                   Download Registration Receipt
                 </button>
               </div>
               <div className="bg-white rounded-xl shadow-sm overflow-hidden p-6 border-t-4 border-green-500 mb-8">
                 <h3 className="text-xl font-bold text-gray-800 mb-4">Registered First Semester Courses</h3>
-                <table className="w-full text-left border-collapse">
-                  <thead><tr className="bg-gray-100 text-gray-600 text-sm uppercase"><th className="p-4 border-b">Code</th><th className="p-4 border-b">Title</th><th className="p-4 border-b">Units</th></tr></thead>
-                  <tbody>{firstSemRegistered.map(course => (<tr key={course.course_code}><td className="p-4 border-b font-semibold">{course.course_code}</td><td className="p-4 border-b">{course.course_title}</td><td className="p-4 border-b">{course.units}</td></tr>))}</tbody>
-                </table>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[500px]">
+                    <thead><tr className="bg-gray-100 text-gray-600 text-sm uppercase"><th className="p-4 border-b">Code</th><th className="p-4 border-b">Title</th><th className="p-4 border-b">Units</th></tr></thead>
+                    <tbody>{firstSemRegistered.map(course => (<tr key={course.course_code}><td className="p-4 border-b font-semibold">{course.course_code}</td><td className="p-4 border-b">{course.course_title}</td><td className="p-4 border-b">{course.units}</td></tr>))}</tbody>
+                  </table>
+                </div>
                 <p className="mt-4 font-bold text-right text-lg text-gray-700">First Semester Total Units: {totalFirstSemUnits}</p>
              </div>
              <div className="bg-white rounded-xl shadow-sm overflow-hidden p-6 border-t-4 border-green-500">
                 <h3 className="text-xl font-bold text-gray-800 mb-4">Registered Second Semester Courses</h3>
-                <table className="w-full text-left border-collapse">
-                  <thead><tr className="bg-gray-100 text-gray-600 text-sm uppercase"><th className="p-4 border-b">Code</th><th className="p-4 border-b">Title</th><th className="p-4 border-b">Units</th></tr></thead>
-                  <tbody>{secondSemRegistered.map(course => (<tr key={course.course_code}><td className="p-4 border-b font-semibold">{course.course_code}</td><td className="p-4 border-b">{course.course_title}</td><td className="p-4 border-b">{course.units}</td></tr>))}</tbody>
-                </table>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[500px]">
+                    <thead><tr className="bg-gray-100 text-gray-600 text-sm uppercase"><th className="p-4 border-b">Code</th><th className="p-4 border-b">Title</th><th className="p-4 border-b">Units</th></tr></thead>
+                    <tbody>{secondSemRegistered.map(course => (<tr key={course.course_code}><td className="p-4 border-b font-semibold">{course.course_code}</td><td className="p-4 border-b">{course.course_title}</td><td className="p-4 border-b">{course.units}</td></tr>))}</tbody>
+                  </table>
+                </div>
                 <p className="mt-4 font-bold text-right text-lg text-gray-700">Second Semester Total Units: {totalSecondSemUnits}</p>
              </div>
              </>
@@ -347,8 +330,11 @@ function App() {
                 {user.level !== 100 && (
                   <div className="bg-red-50 p-4 border-y">
                     <h4 className="text-md font-bold text-red-700 mb-2">Add Outstanding Courses (First Semester)</h4>
-                    <form onSubmit={handleSearchFirst} className="flex gap-4"><input type="text" placeholder="Search by course code or title..." className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-400" value={searchQueryFirst} onChange={(e) => setSearchQueryFirst(e.target.value)} /><button type="submit" className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700">Search</button></form>
-                    {searchResultsFirst.length > 0 && (<div className="mt-4 border rounded-lg overflow-hidden bg-white">{searchResultsFirst.map(course => (<div key={course.course_code} className="flex justify-between items-center p-3 border-b hover:bg-gray-50"><div><p className="font-bold text-sm">{course.course_code} - {course.course_title} ({course.units} Units)</p></div><button onClick={() => toggleFirstSemCourse(course)} className={`px-4 py-1 rounded font-bold text-xs ${firstSemSelected.some(c => c.course_code === course.course_code) ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{firstSemSelected.some(c => c.course_code === course.course_code) ? 'Remove' : 'Add'}</button></div>))}</div>)}
+                    <form onSubmit={handleSearchFirst} className="flex flex-col md:flex-row gap-4">
+                      <input type="text" placeholder="Search by course code or title..." className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-400" value={searchQueryFirst} onChange={(e) => setSearchQueryFirst(e.target.value)} />
+                      <button type="submit" className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700">Search</button>
+                    </form>
+                    {searchResultsFirst.length > 0 && (<div className="mt-4 border rounded-lg overflow-hidden bg-white">{searchResultsFirst.map(course => (<div key={course.course_code} className="flex flex-col md:flex-row justify-between items-start md:items-center p-3 border-b hover:bg-gray-50 gap-2"><div><p className="font-bold text-sm">{course.course_code} - {course.course_title} ({course.units} Units)</p></div><button onClick={() => toggleFirstSemCourse(course)} className={`px-4 py-1 rounded font-bold text-xs w-full md:w-auto ${firstSemSelected.some(c => c.course_code === course.course_code) ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{firstSemSelected.some(c => c.course_code === course.course_code) ? 'Remove' : 'Add'}</button></div>))}</div>)}
                   </div>
                 )}
                 <div className="p-4 bg-gray-50 flex justify-between items-center"><p className="font-bold text-gray-700 text-lg">First Sem Total Units: {firstSemSelected.reduce((sum, c) => sum + c.units, 0)}</p></div>
@@ -359,15 +345,18 @@ function App() {
                 {user.level !== 100 && (
                   <div className="bg-red-50 p-4 border-y">
                     <h4 className="text-md font-bold text-red-700 mb-2">Add Outstanding Courses (Second Semester)</h4>
-                    <form onSubmit={handleSearchSecond} className="flex gap-4"><input type="text" placeholder="Search by course code or title..." className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-400" value={searchQuerySecond} onChange={(e) => setSearchQuerySecond(e.target.value)} /><button type="submit" className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700">Search</button></form>
-                    {searchResultsSecond.length > 0 && (<div className="mt-4 border rounded-lg overflow-hidden bg-white">{searchResultsSecond.map(course => (<div key={course.course_code} className="flex justify-between items-center p-3 border-b hover:bg-gray-50"><div><p className="font-bold text-sm">{course.course_code} - {course.course_title} ({course.units} Units)</p></div><button onClick={() => toggleSecondSemCourse(course)} className={`px-4 py-1 rounded font-bold text-xs ${secondSemSelected.some(c => c.course_code === course.course_code) ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{secondSemSelected.some(c => c.course_code === course.course_code) ? 'Remove' : 'Add'}</button></div>))}</div>)}
+                    <form onSubmit={handleSearchSecond} className="flex flex-col md:flex-row gap-4">
+                      <input type="text" placeholder="Search by course code or title..." className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-400" value={searchQuerySecond} onChange={(e) => setSearchQuerySecond(e.target.value)} />
+                      <button type="submit" className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700">Search</button>
+                    </form>
+                    {searchResultsSecond.length > 0 && (<div className="mt-4 border rounded-lg overflow-hidden bg-white">{searchResultsSecond.map(course => (<div key={course.course_code} className="flex flex-col md:flex-row justify-between items-start md:items-center p-3 border-b hover:bg-gray-50 gap-2"><div><p className="font-bold text-sm">{course.course_code} - {course.course_title} ({course.units} Units)</p></div><button onClick={() => toggleSecondSemCourse(course)} className={`px-4 py-1 rounded font-bold text-xs w-full md:w-auto ${secondSemSelected.some(c => c.course_code === course.course_code) ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{secondSemSelected.some(c => c.course_code === course.course_code) ? 'Remove' : 'Add'}</button></div>))}</div>)}
                   </div>
                 )}
                 <div className="p-4 bg-gray-50 flex justify-between items-center"><p className="font-bold text-gray-700 text-lg">Second Sem Total Units: {secondSemSelected.reduce((sum, c) => sum + c.units, 0)}</p></div>
               </div>
-              <div className="p-6 bg-white border rounded-xl shadow-lg flex justify-between items-center sticky bottom-4">
-                <div><p className="font-bold text-gray-700 text-xl">Grand Total Units: {firstSemSelected.reduce((sum, c) => sum + c.units, 0) + secondSemSelected.reduce((sum, c) => sum + c.units, 0)}</p></div>
-                <button onClick={handleRegister} className="bg-[#7B3F00] hover:bg-[#5A2E00] text-white font-bold py-3 px-8 rounded-lg shadow-md transition text-lg">Submit Registration</button>
+              <div className="p-6 bg-white border rounded-xl shadow-lg flex flex-col md:flex-row justify-between items-center gap-4 sticky bottom-4">
+                <div><p className="font-bold text-gray-700 text-xl text-center md:text-left">Grand Total Units: {firstSemSelected.reduce((sum, c) => sum + c.units, 0) + secondSemSelected.reduce((sum, c) => sum + c.units, 0)}</p></div>
+                <button onClick={handleRegister} className="w-full md:w-auto bg-[#7B3F00] hover:bg-[#5A2E00] text-white font-bold py-3 px-8 rounded-lg shadow-md transition text-lg">Submit Registration</button>
               </div>
             </>
           )}
@@ -396,7 +385,7 @@ function App() {
   }
 
   // ==========================================
-  // RENDER: ADMIN DASHBOARD
+  // RENDER: ADMIN DASHBOARD (FIXED FOR MOBILE)
   // ==========================================
   if (user && user.role === 'admin') {
     const filteredStudents = adminStudents.filter(student => {
@@ -407,56 +396,77 @@ function App() {
 
     return (
       <div className="min-h-screen bg-gray-100 pb-10">
-        <nav className="bg-[#007FFF] text-white p-4 shadow-md flex justify-between items-center px-8 print:hidden">
-          <div className="flex items-center gap-3"><img src="/logo.jpg" alt="Logo" className="w-10 rounded-full" /><h1 className="text-xl font-bold">CUSTECH Admin Portal</h1></div>
+        <nav className="bg-[#007FFF] text-white p-4 shadow-md flex justify-between items-center px-4 md:px-8 print:hidden">
+          <div className="flex items-center gap-3"><img src="/logo.jpg" alt="Logo" className="w-10 rounded-full" /><h1 className="text-lg md:text-xl font-bold">CUSTECH Admin Portal</h1></div>
           <button onClick={handleLogout} className="bg-black/20 hover:bg-black/30 px-4 py-2 rounded-lg text-sm font-semibold transition">Logout</button>
         </nav>
 
         <div className="max-w-6xl mx-auto mt-8 px-4 print:hidden">
-          <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-[#7B3F00] mb-8 flex justify-between items-center">
-            <div><h2 className="text-3xl font-extrabold text-gray-800">Welcome, {user.name}</h2><p className="text-gray-600 mt-2">Total Registered Students: <span className="font-bold text-[#007FFF]">{adminStudents.length}</span></p></div>
+          <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-[#7B3F00] mb-8 flex flex-col md:flex-row justify-between md:items-center gap-4">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-extrabold text-gray-800">Welcome, {user.name}</h2>
+              <p className="text-gray-600 mt-2">Total Registered Students: <span className="font-bold text-[#007FFF]">{adminStudents.length}</span></p>
+            </div>
           </div>
 
-          <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex gap-4 items-center">
-            <span className="font-bold text-gray-700">Filter By:</span>
-            <select className="border p-2 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-400 outline-none" value={filterDept} onChange={(e) => setFilterDept(e.target.value)}>
-              <option value="All">All Departments</option>
-              <option value="Information Technology">Information Technology</option>
-              <option value="Computer Science">Computer Science</option>
-              <option value="Software Engineering">Software Engineering</option>
-              <option value="Cyber Security">Cyber Security</option>
-              <option value="Library and Information Science">Library and Information Science</option>
-            </select>
-            <select className="border p-2 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-400 outline-none" value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)}>
-              <option value="All">All Levels</option>
-              <option value="100">100 Level</option>
-              <option value="200">200 Level</option>
-              <option value="300">300 Level</option>
-              <option value="400">400 Level</option>
-            </select>
+          {/* FILTERS - FIXED FOR MOBILE (STACKS VERTICALLY) */}
+          <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-col md:flex-row gap-4 md:items-center">
+            <span className="font-bold text-gray-700 whitespace-nowrap">Filter By:</span>
+            <div className="flex flex-col md:flex-row gap-4 w-full">
+              <select className="border p-2 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-400 outline-none w-full md:w-auto" value={filterDept} onChange={(e) => setFilterDept(e.target.value)}>
+                <option value="All">All Departments</option>
+                <option value="Information Technology">Information Technology</option>
+                <option value="Computer Science">Computer Science</option>
+                <option value="Software Engineering">Software Engineering</option>
+                <option value="Cyber Security">Cyber Security</option>
+                <option value="Library and Information Science">Library and Information Science</option>
+              </select>
+              <select className="border p-2 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-400 outline-none w-full md:w-auto" value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)}>
+                <option value="All">All Levels</option>
+                <option value="100">100 Level</option>
+                <option value="200">200 Level</option>
+                <option value="300">300 Level</option>
+                <option value="400">400 Level</option>
+              </select>
+            </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden p-6">
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden p-4 md:p-6">
             <h3 className="text-xl font-bold mb-4">Registered Students ({filteredStudents.length})</h3>
+            
+            {/* TABLE WRAPPER - FIXED FOR MOBILE HORIZONTAL SCROLL */}
             {loading ? <p>Loading...</p> : (
-              <table className="w-full text-left border-collapse">
-                <thead><tr className="bg-gray-100 text-gray-600 text-sm uppercase"><th className="p-4 border-b">Name</th><th className="p-4 border-b">Matric</th><th className="p-4 border-b">Dept</th><th className="p-4 border-b">Level</th><th className="p-4 border-b">Action</th></tr></thead>
-                <tbody>
-                  {filteredStudents.map(student => (
-                    <tr key={student.id} className="hover:bg-gray-50">
-                      <td className="p-4 border-b font-semibold">{student.name}</td>
-                      <td className="p-4 border-b uppercase">{student.matric}</td>
-                      <td className="p-4 border-b">{student.department}</td>
-                      <td className="p-4 border-b">{student.level}L</td>
-                      <td className="p-4 border-b flex gap-2">
-                        <button onClick={() => setSelectedStudentForView(student)} className="bg-blue-100 text-blue-700 px-3 py-1 rounded font-bold text-sm hover:bg-blue-200">View & Print</button>
-                        <button onClick={() => setSelectedStudentForMsg(student)} className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded font-bold text-sm hover:bg-yellow-200">Message</button>
-                        <button onClick={() => handleDeleteRegistration(student.id)} className="bg-red-100 text-red-700 px-3 py-1 rounded font-bold text-sm hover:bg-red-200">Delete Registration</button>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[700px]">
+                  <thead>
+                    <tr className="bg-gray-100 text-gray-600 text-sm uppercase">
+                      <th className="p-4 border-b">Name</th>
+                      <th className="p-4 border-b">Matric</th>
+                      <th className="p-4 border-b">Dept</th>
+                      <th className="p-4 border-b">Level</th>
+                      <th className="p-4 border-b">Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {filteredStudents.map(student => (
+                      <tr key={student.id} className="hover:bg-gray-50">
+                        <td className="p-4 border-b font-semibold">{student.name}</td>
+                        <td className="p-4 border-b uppercase">{student.matric}</td>
+                        <td className="p-4 border-b">{student.department}</td>
+                        <td className="p-4 border-b">{student.level}L</td>
+                        <td className="p-4 border-b">
+                          {/* ACTION BUTTONS - STACKED ON MOBILE, ROW ON DESKTOP */}
+                          <div className="flex flex-col md:flex-row gap-2">
+                            <button onClick={() => setSelectedStudentForView(student)} className="bg-blue-100 text-blue-700 px-3 py-1 rounded font-bold text-sm hover:bg-blue-200 whitespace-nowrap">View & Print</button>
+                            <button onClick={() => setSelectedStudentForMsg(student)} className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded font-bold text-sm hover:bg-yellow-200 whitespace-nowrap">Message</button>
+                            <button onClick={() => handleDeleteRegistration(student.id)} className="bg-red-100 text-red-700 px-3 py-1 rounded font-bold text-sm hover:bg-red-200 whitespace-nowrap">Delete</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>
@@ -492,11 +502,11 @@ function App() {
                 <button onClick={() => setSelectedStudentForView(null)} className="text-white hover:text-red-200 text-3xl font-bold">&times;</button>
               </div>
               <div className="p-6 overflow-y-auto flex-1">
-                <div className="flex gap-4 mb-6">
-                  <button onClick={handlePrintAdminCourseForm} className="bg-[#007FFF] text-white py-2 px-4 rounded font-bold hover:bg-blue-700 flex items-center gap-2"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Print Course Form</button>
-                  <button onClick={handlePrintAdminReceipt} className="bg-[#008000] text-white py-2 px-4 rounded font-bold hover:bg-green-700 flex items-center gap-2"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> Print Receipt</button>
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
+                  <button onClick={handlePrintAdminCourseForm} className="bg-[#007FFF] text-white py-2 px-4 rounded font-bold hover:bg-blue-700 flex items-center justify-center gap-2"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Print Course Form</button>
+                  <button onClick={handlePrintAdminReceipt} className="bg-[#008000] text-white py-2 px-4 rounded font-bold hover:bg-green-700 flex items-center justify-center gap-2"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> Print Receipt</button>
                 </div>
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div><h4 className="font-bold text-gray-700 mb-2 border-b pb-1">First Semester</h4><ul className="text-sm space-y-1 text-gray-600">{selectedStudentForView.courses.filter(c => c.semester === 'First').map(c => <li key={c.course_code}>{c.course_code} - {c.course_title}</li>)}</ul></div>
                   <div><h4 className="font-bold text-gray-700 mb-2 border-b pb-1">Second Semester</h4><ul className="text-sm space-y-1 text-gray-600">{selectedStudentForView.courses.filter(c => c.semester === 'Second').map(c => <li key={c.course_code}>{c.course_code} - {c.course_title}</li>)}</ul></div>
                 </div>
@@ -533,13 +543,13 @@ function App() {
   // RENDER: LOGIN / SIGNUP
   // ==========================================
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-100 p-4">
       <img src="/logo.jpg" alt="Background" className="absolute w-[800px] opacity-5 pointer-events-none select-none" />
-      <div className="relative z-10 bg-white/90 backdrop-blur-md p-10 rounded-2xl shadow-2xl w-full max-w-md border border-white/50">
+      <div className="relative z-10 bg-white/90 backdrop-blur-md p-8 md:p-10 rounded-2xl shadow-2xl w-full max-w-md border border-white/50">
         <div className="flex flex-col items-center mb-8">
           <img src="/logo.jpg" alt="CUSTECH Logo" className="w-20 mb-4" />
-          <h1 className="text-2xl font-bold text-[#7B3F00] text-center">CUSTECH Course Registration</h1>
-          <p className="text-gray-500 text-sm mt-2">
+          <h1 className="text-xl md:text-2xl font-bold text-[#7B3F00] text-center">CUSTECH Course Registration</h1>
+          <p className="text-gray-500 text-sm mt-2 text-center">
             {view === 'login' && 'Welcome back! Please login.'}
             {view === 'signup' && 'Create your student account.'}
             {view === 'admin' && 'Administrator Login'}
@@ -564,8 +574,8 @@ function App() {
         )}
         {message.text && <div className={`mt-4 p-3 rounded-lg text-center text-sm font-medium ${message.type === 'error' ? 'bg-red-100 text-red-700' : message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>{message.text}</div>}
         <div className="mt-8 pt-4 border-t border-gray-200 flex flex-col gap-2 items-center text-sm">
-          {view === 'login' && <button onClick={() => { setView('signup'); setMessage({text:'', type:''}); }} className="text-[#007FFF] hover:underline">Don't have an account? Sign up</button>}
-          {view === 'signup' && <button onClick={() => { setView('login'); setMessage({text:'', type:''}); }} className="text-[#007FFF] hover:underline">Already have an account? Login</button>}
+          {view === 'login' && <button onClick={() => { setView('signup'); setMessage({text:'', type:''}); }} className="text-[#007FFF] hover:underline text-center">Don't have an account? Sign up</button>}
+          {view === 'signup' && <button onClick={() => { setView('login'); setMessage({text:'', type:''}); }} className="text-[#007FFF] hover:underline text-center">Already have an account? Login</button>}
           {view !== 'admin' ? (
             <button onClick={() => { setView('admin'); setMessage({text:'', type:''}); }} className="text-xs text-gray-500 hover:text-[#7B3F00] uppercase tracking-wider font-semibold mt-2">Admin Portal</button>
           ) : (
